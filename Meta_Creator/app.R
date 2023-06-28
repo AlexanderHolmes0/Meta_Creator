@@ -1,12 +1,17 @@
-
 library(shiny)
 library(shinythemes)
 
 meta_creator <- function(title, descrip, url, image) {
-    require(shiny)  
-    HTML(paste0(
-        '<!-- HTML Meta Tags -->
-<title>"', title, '"</title>
+require(assertive)
+require(shiny)  
+    assertive::assert_is_a_string(title)
+    assertive::assert_is_a_string(descrip)
+    assertive::assert_is_a_string(url)
+    assertive::assert_is_a_string(image)
+    
+HTML(paste0(
+'<!-- Quick & Dirty HTML Meta Tags -->
+<title>', title, '</title>
 <meta name="description" content="', descrip, '">
 
 <!-- Google / Search Engine Tags -->
@@ -36,32 +41,36 @@ meta_creator <- function(title, descrip, url, image) {
     
 }
 
-ui <- fluidPage(
+ui <- fixedPage(
+    tags$head(meta_creator("Metatags Creator", "No Fluff Metatag Generator",
+                      "https://aholmes24.shinyapps.io/Meta_Creator/",
+                      "https://media.giphy.com/media/gY5sEujrJbCve/giphy.gif"),
+              tags$link(rel = "shortcut icon", href = "favicon.ico")),
     theme = shinytheme('united'),
     # Application title
-    titlePanel("Metatags_Creator"),
+    titlePanel(h1("Metatags Creator",align='center')),
 
-    
+    br(),
     sidebarLayout(
         sidebarPanel(
             textInput("title", label = "Website Title"),
             textInput("descrip", label = "Website Description"),
             textInput("url",label = "Website URL"),
-            textInput("image",label = "Image URL")
+            textInput("image",label = "Image URL"),
+            submitButton()
         ),
 
-        mainPanel(
-           h1("Quick and Dirty Metatags Output"),
+        mainPanel(width = 8,
            verbatimTextOutput('tags')
         )
     )
 )
 
 
-# Define server logic required to draw a histogram
 server <- function(input, output) {
 
     output$tags <- renderText({
+        
         meta_creator(input$title,input$descrip,input$url,input$image)
 })
 }
