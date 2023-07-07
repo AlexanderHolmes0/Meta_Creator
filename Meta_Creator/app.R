@@ -1,6 +1,6 @@
 library(shiny)
 library(shinythemes)
-
+library(rclipboard)
 
 meta_creator <- function(title, descrip, url, image) {
   require(assertive)
@@ -10,9 +10,9 @@ meta_creator <- function(title, descrip, url, image) {
   assertive::assert_is_a_string(url)
   assertive::assert_is_a_string(image)
 
-  HTML(paste0(
-    "<!-- Quick & Dirty HTML Meta Tags -->
-<title>", title, '</title>
+HTML(paste0(
+'<!-- Quick & Dirty HTML Meta Tags -->
+<title>', title, '</title>
 <meta name="description" content="', descrip, '">
 
 <!-- Google / Search Engine Tags -->
@@ -37,12 +37,11 @@ meta_creator <- function(title, descrip, url, image) {
 <meta name="twitter:url" content="', url, '">
 <meta name="twitter:title" content="', title, '">
 <meta name="twitter:description" content="', descrip, '">
-<meta name="twitter:image" content="', image, '">
-'
-  ))
+<meta name="twitter:image" content="', image, '">'))
 }
 
 ui <- fixedPage(
+  rclipboardSetup(),
   tags$head(
     meta_creator(
       "Metatags Creator", "No Fluff Metatag Generator",
@@ -55,7 +54,7 @@ ui <- fixedPage(
       #social {
         border-radius: 10px;
         display: block;
-        background-color: #FFFFFF;
+        background-color: #FAF9F6;
         width: 250px;
         height: 265px;
         text-align: left;
@@ -80,6 +79,7 @@ ui <- fixedPage(
       textInput("descrip", label = "Website Description", placeholder = "Enter the description"),
       textInput("url", label = "Website URL", placeholder = "Enter the website URL"),
       textInput("image", label = "Image URL", placeholder = "Enter the image URL"),
+      radioButtons('version',label = "Shiny or HTML Ready?",choices = c("Shiny App", "HTML"),selected = "Shiny App"),
       div(align='center',
           h6("Social Card Preview"),
       div(id = "social",
@@ -92,7 +92,8 @@ ui <- fixedPage(
       
     ))),
     mainPanel(
-      verbatimTextOutput("tags")
+      verbatimTextOutput("tags"),
+      uiOutput('clip')
     ),
     
   ),
@@ -104,8 +105,27 @@ ui <- fixedPage(
 
 
 server <- function(input, output) {
+  
+  metas <- reactive({
+    if(input$version == "Shiny App"){
+      paste0("HTML('",meta_creator(input$title, input$descrip, input$url, input$image),"')")
+    }else{
+      meta_creator(input$title, input$descrip, input$url, input$image)
+    }
+    
+  })
+  
   output$tags <- renderText({
-    meta_creator(input$title, input$descrip, input$url, input$image)
+    metas()
+  })
+  
+  output$clip <- renderUI({
+    rclipButton(
+      inputId = "clipbtn", 
+      label = "Copy to Clipboard", 
+      clipText = metas(), 
+      icon = icon("clipboard"),
+      style="background-color: #e95420; float:right;")
   })
   
   output$title <- renderText({
