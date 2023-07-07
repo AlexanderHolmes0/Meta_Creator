@@ -1,6 +1,7 @@
 library(shiny)
 library(shinythemes)
 library(rclipboard)
+library(shinyWidgets)
 
 meta_creator <- function(title, descrip, url, image) {
   require(assertive)
@@ -10,9 +11,9 @@ meta_creator <- function(title, descrip, url, image) {
   assertive::assert_is_a_string(url)
   assertive::assert_is_a_string(image)
 
-HTML(paste0(
-'<!-- Quick & Dirty HTML Meta Tags -->
-<title>', title, '</title>
+  HTML(paste0(
+    "<!-- Quick & Dirty HTML Meta Tags -->
+<title>", title, '</title>
 <meta name="description" content="', descrip, '">
 
 <!-- Google / Search Engine Tags -->
@@ -37,7 +38,8 @@ HTML(paste0(
 <meta name="twitter:url" content="', url, '">
 <meta name="twitter:title" content="', title, '">
 <meta name="twitter:description" content="', descrip, '">
-<meta name="twitter:image" content="', image, '">'))
+<meta name="twitter:image" content="', image, '">'
+  ))
 }
 
 ui <- fixedPage(
@@ -50,12 +52,12 @@ ui <- fixedPage(
     ),
     tags$link(rel = "shortcut icon", href = "favicon.ico"),
     tags$style(HTML("
-      
+
       #social {
         border-radius: 10px;
         display: block;
         background-color: #FAF9F6;
-        width: 250px;
+        max-width: 250px;
         height: 265px;
         text-align: left;
         overflow-wrap: break-word;
@@ -66,8 +68,13 @@ ui <- fixedPage(
       }
       img {
           border-radius: 10px 10px 0px 0px;
+          width: 250px
+      }
       
-      }"))
+      #social img{
+      max-width: 100%
+      }
+      "))
   ),
   theme = shinytheme("united"),
   # Application title
@@ -79,71 +86,86 @@ ui <- fixedPage(
       textInput("descrip", label = "Website Description", placeholder = "Enter the description"),
       textInput("url", label = "Website URL", placeholder = "Enter the website URL"),
       textInput("image", label = "Image URL", placeholder = "Enter the image URL"),
-      radioButtons('version',label = "Shiny or HTML Ready?",choices = c("Shiny App", "HTML"),selected = "Shiny App"),
-      div(align='center',
-          h6("Social Card Preview"),
-      div(id = "social",
-         
-        uiOutput("preview_image"),
-
-        h5(textOutput('title')),
-        h6(textOutput('descrip'))
-        
+      prettyRadioButtons(
+        inputId = "version",
+        label = "Shiny or HTML Ready?",
+        choices = c("Shiny App", "HTML"),
+        selected = "Shiny App",
+        icon = icon("check"),
+        bigger = TRUE,
+        status = "info",
+        animation = "jelly"
+      ),
       
-    ))),
+      div(
+        align = "center",
+        h6("Social Card Preview"),
+        div(
+          id = "social",
+          uiOutput("preview_image"),
+          h5(textOutput("title")),
+          h6(textOutput("descrip"))
+        )
+      )
+    ),
     mainPanel(
       verbatimTextOutput("tags"),
-      uiOutput('clip')
-    ),
-    
+      uiOutput("clip")
+    )
   ),
-  div(id='bottomright',
-      tags$a(href="https://github.com/AlexanderHolmes0", "Created by Alex Holmes")
-      
+  div(
+    id = "bottomright",
+    tags$a(href = "https://github.com/AlexanderHolmes0", "Created by Alex Holmes")
   )
 )
 
 
 server <- function(input, output) {
-  
   metas <- reactive({
-    if(input$version == "Shiny App"){
-      paste0("HTML('",meta_creator(input$title, input$descrip, input$url, input$image),"')")
-    }else{
+    if (input$version == "Shiny App") {
+      paste0("HTML('", meta_creator(input$title, input$descrip, input$url, input$image), "')")
+    } else {
       meta_creator(input$title, input$descrip, input$url, input$image)
     }
-    
   })
-  
+
   output$tags <- renderText({
     metas()
   })
-  
+
   output$clip <- renderUI({
     rclipButton(
-      inputId = "clipbtn", 
-      label = "Copy to Clipboard", 
-      clipText = metas(), 
+      inputId = "clipbtn",
+      label = "Copy to Clipboard",
+      clipText = metas(),
       icon = icon("clipboard"),
-      style="background-color: #e95420; float:right;")
+      style = "background-color: #e95420; float:right;"
+    )
   })
-  
+
+  observeEvent(input$clipbtn, {
+    show_toast(
+      title = "Text Copied",
+      type = "success",
+      position = "top-end"
+    )
+  })
+
   output$title <- renderText({
-      input$title
+    input$title
   })
-  
+
   output$descrip <- renderText({
-      input$descrip
+    input$descrip
   })
-  
+
   output$preview_image <- renderUI({
     if (!is.null(input$image) && grepl("^https?://", input$image)) {
-      tags$img(src = input$image, alt = "Social Card Preview", height = "200px", width = "250px")
+      tags$img(src = input$image, alt = "Social Card Preview", height = "200px" )
     } else {
-      tags$img(src = "https://via.placeholder.com/300", alt = "Social Card Preview", height = "200px", width = "250px")
+      tags$img(src = "https://via.placeholder.com/300", alt = "Social Card Preview", height='200px')
     }
   })
-  
 }
 # Run the application
 shinyApp(ui = ui, server = server)
