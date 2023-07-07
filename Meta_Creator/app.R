@@ -115,7 +115,7 @@ ui <- fixedPage(
   ),
   div(
     id = "bottomright",
-    tags$a(href = "https://github.com/AlexanderHolmes0", "Created by Alex Holmes")
+    tags$a(target="_blank", rel="noopener noreferrer", href = "https://github.com/AlexanderHolmes0", "Created by Alex Holmes")
   )
 )
 
