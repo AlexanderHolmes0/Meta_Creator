@@ -42,6 +42,7 @@ meta_creator <- function(title, descrip, url, image) {
   ))
 }
 
+
 ui <- fixedPage(
   rclipboardSetup(),
   tags$head(
@@ -61,22 +62,24 @@ ui <- fixedPage(
         height: 265px;
         text-align: left;
         overflow-wrap: break-word;
+        border:1px solid #e95420;
       }
-      #bottomright{
-        float: right;
-        bottom: 1vh;
+      
+      .pretty input:checked~.state.p-danger label:after, .pretty.p-toggle .state.p-danger label:after {
+      background-color: #e95420!important;
       }
       img {
           border-radius: 10px 10px 0px 0px;
           width: 250px
       }
-      
+
       #social img{
       max-width: 100%
       }
       "))
   ),
   theme = shinytheme("united"),
+
   # Application title
   titlePanel(h1("Metatags Creator", align = "center")),
   br(),
@@ -86,17 +89,31 @@ ui <- fixedPage(
       textInput("descrip", label = "Website Description", placeholder = "Enter the description"),
       textInput("url", label = "Website URL", placeholder = "Enter the website URL"),
       textInput("image", label = "Image URL", placeholder = "Enter the image URL"),
-      prettyRadioButtons(
-        inputId = "version",
-        label = "Shiny or HTML Ready?",
-        choices = c("Shiny App", "HTML"),
-        selected = "Shiny App",
-        icon = icon("check"),
-        bigger = TRUE,
-        status = "info",
-        animation = "jelly"
+      uiOutput("faviconlink"),
+      fluidRow(
+        column(
+          width = 6,
+          
+          prettyRadioButtons(
+            inputId = "version",
+            label = "Shiny or HTML Ready?",
+            choices = c("Shiny App", "HTML"),
+            selected = "Shiny App",
+            icon = icon("check"),
+            bigger = TRUE,
+            status = "danger",
+            animation = "jelly"
+          )
+        ),
+        column(
+          width = 6,
+          materialSwitch("favicon", label = strong("Add Favicon"), value = FALSE),
+          tags$a(
+            target = "_blank", rel = "noopener noreferrer",
+            href = "https://animated-fluent-emoji.vercel.app/", "Favicon Idea Link"
+          )
+        )
       ),
-      
       div(
         align = "center",
         h6("Social Card Preview"),
@@ -110,24 +127,51 @@ ui <- fixedPage(
     ),
     mainPanel(
       verbatimTextOutput("tags"),
-      uiOutput("clip")
+      column(uiOutput("clip"), width = 9, offset = 9),
+      column(
+        br(),
+        br(),
+        tags$a(
+          target = "_blank", rel = "noopener noreferrer",
+          href = "https://github.com/AlexanderHolmes0", "Created by Alex Holmes"
+        ),
+        width = 9, offset = 9
+      )
     )
-  ),
-  div(
-    id = "bottomright",
-    tags$a(target="_blank", rel="noopener noreferrer", href = "https://github.com/AlexanderHolmes0", "Created by Alex Holmes")
   )
 )
 
 
+
 server <- function(input, output) {
   metas <- reactive({
-    if (input$version == "Shiny App") {
-      paste0("HTML('", meta_creator(input$title, input$descrip, input$url, input$image), "')")
+    if (input$version == "Shiny App" & input$favicon == TRUE) {
+      paste0(
+        "tags$head(HTML(\n'", meta_creator(input$title, input$descrip, input$url, input$image), "'),", "\n", "\n",
+        'tags$link(rel = "shortcut icon", href = "', input$faviconurl, '")',
+        "),"
+      )
+    } else if (input$version == "Shiny App") {
+      paste0("tags$head(HTML(\n'", meta_creator(input$title, input$descrip, input$url, input$image), "')),")
+    } else if (input$favicon == TRUE) {
+      paste0(
+        "<head>\n", meta_creator(input$title, input$descrip, input$url, input$image), "\n", "\n",
+        '<link rel="shortcut icon" href="', input$faviconurl, '">\n</head>'
+      )
     } else {
-      meta_creator(input$title, input$descrip, input$url, input$image)
+      paste0(
+        "<head>\n", meta_creator(input$title, input$descrip, input$url, input$image), "\n",
+        "</head>"
+      )
     }
   })
+
+  output$faviconlink <- renderUI({
+    if (input$favicon == TRUE) {
+      textInput("faviconurl", label = "Favicon URL", placeholder = "Enter the favicon image URL")
+    }
+  })
+
 
   output$tags <- renderText({
     metas()
@@ -139,7 +183,7 @@ server <- function(input, output) {
       label = "Copy to Clipboard",
       clipText = metas(),
       icon = icon("clipboard"),
-      style = "background-color: #e95420; float:right;"
+      style = "background-color: #e95420; "
     )
   })
 
@@ -161,9 +205,9 @@ server <- function(input, output) {
 
   output$preview_image <- renderUI({
     if (!is.null(input$image) && grepl("^https?://", input$image)) {
-      tags$img(src = input$image, alt = "Social Card Preview", height = "200px" )
+      tags$img(src = input$image, alt = "Social Card Preview", height = "200px")
     } else {
-      tags$img(src = "https://via.placeholder.com/300", alt = "Social Card Preview", height='200px')
+      tags$img(src = "https://via.placeholder.com/300", alt = "Social Card Preview", height = "200px")
     }
   })
 }
